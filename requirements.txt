@@ -1,0 +1,8 @@
+flask
+sqlite3
+os
+pandas
+io
+datetime
+gunicorn
+itsdengerous
