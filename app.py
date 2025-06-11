@@ -6,7 +6,7 @@ import io
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = "Swathi@01"
 app.config['PER_PAGE'] = 20
 DB_FILE = 'data.db'
 
