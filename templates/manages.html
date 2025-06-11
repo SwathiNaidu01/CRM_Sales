@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manage Users</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 2rem;
+            background: #f5f6fa;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .slide-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .table {
+            background: white;
+        }
+
+        .form-title {
+            margin-bottom: 1rem;
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="slide-form mb-4">
+        <div class="form-title">➕ Add New Employee</div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="mb-3">
+                <label for="emp_name" class="form-label">Employee Name</label>
+                <input type="text" class="form-control" name="emp_name" required>
+            </div>
+            <div class="mb-3">
+                <label for="emp_email" class="form-label">Email</label>
+                <input type="email" class="form-control" name="emp_email" required>
+            </div>
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" name="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="temp_password" class="form-label">Temporary Password</label>
+                <input type="text" class="form-control" name="temp_password" required value="user123">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Create User</button>
+        </form>
+    </div>
+
+    <div class="container mt-4">
+        <h4>🧑‍💼 All Users</h4>
+        <table class="table table-bordered table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Employee Name</th>
+                    <th>Role</th>
+                    <th>Must Change Password</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user['id'] }}</td>
+                    <td>{{ user['username'] }}</td>
+                    <td>{{ user['emp_name'] }}</td>
+                    <td>{{ user['role'] }}</td>
+                    <td>{{ "Yes" if user['must_change_password'] else "No" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

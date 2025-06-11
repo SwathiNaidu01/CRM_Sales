@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Entry</title>
+    <style>
+        /* Similar styling to edit_entry.html but with read-only fields */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            padding: 2rem;
+            color: #333;
+        }
+        .container {
+            background: #ffffff;
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+            margin: auto;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+        .view-group {
+            margin-bottom: 1rem;
+        }
+        .view-group label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        .view-group .value {
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>View Dashboard Entry (Read-only)</h2>
+        <a href="{{ url_for('dashboard_entries') }}" style="text-decoration: none; color: #4f46e5; margin-bottom: 1rem; display: inline-block;">← Back to Entries</a>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem 1.5rem;">
+            {% for field, label in {
+                'emp_name': 'Employee Name',
+                'project_name': 'Project Name',
+                'role': 'Role',
+                'department': 'Department',
+                'client_name': 'Client Name',
+                'client_email': 'Client Email',
+                'report_date': 'Report Date',
+                'follow_up_date': 'Follow-up Date',
+                'budget': 'Budget',
+                'contact_number': 'Contact Number',
+                'status': 'Status',
+                'feedback': 'Feedback',
+                'notes': 'Notes'
+            }.items() %}
+            <div class="view-group">
+                <label>{{ label }}:</label>
+                <div class="value">{{ entry[field] or 'N/A' }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

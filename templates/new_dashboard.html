@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>New Dashboard Entry</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 2rem; color: #333; }
+        .container { background: #ffffff; padding: 1.5rem 2rem; border-radius: 12px; width: 90%; max-width: 900px; margin: auto; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); }
+        h2 { margin-bottom: 1rem; color: #374151; }
+        form { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem 1.5rem; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.3rem; color: #1f2937; }
+        input, textarea, select { padding: 0.4rem 0.6rem; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 6px; }
+        .full-width { grid-column: 1 / -1; }
+        button { padding: 0.6rem 1.2rem; background: #4f46e5; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('dashboard_entries') }}" style="text-decoration: none; color: #4f46e5; margin-bottom: 1rem; display: inline-block;">← Back to Entries</a>
+        <h2>📋 New Dashboard Entry</h2>
+       <form method="POST" action="{{ url_for('new_dashboard') }}">
+            <div class="form-group">
+                <label>Employee Name:</label>
+                <input type="text" name="emp_name" required>
+            <div class="form-group">
+                <label>Project Name:</label>
+                <input type="text" name="project_name" required>
+            </div>
+            <div class="form-group">
+                <label>Role:</label>
+                <input type="text" name="role" required>
+            </div>
+            <div class="form-group">
+                <label>Department:</label>
+                <input type="text" name="department" required>
+            </div>
+            <div class="form-group">
+                <label>Client Name:</label>
+                <input type="text" name="client_name" required>
+            </div>
+            <div class="form-group">
+                <label>Client Email:</label>
+                <input type="email" name="client_email" required>
+            </div>
+            <div class="form-group">
+                <label>Report Date:</label>
+                <input type="date" name="report_date" required>
+            </div>
+            <div class="form-group">
+                <label>Follow-up Date:</label>
+                <input type="date" name="follow_up_date">
+            </div>
+            <div class="form-group">
+                <label>Budget:</label>
+                <input type="number" name="budget" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label>Contact Number:</label>
+                <input type="text" name="contact_number" required>
+            </div>
+            <div class="form-group full-width">
+                <label>Feedback:</label>
+                <textarea name="feedback" rows="2" required></textarea>
+            </div>
+            <div class="form-group full-width">
+                <label>Notes:</label>
+                <textarea name="notes" rows="2" required></textarea>
+            </div>
+            <div class="form-group full-width">
+                <label>Status of Project:</label>
+                <select name="status" required>
+                    <option value="" disabled selected>Select status</option>
+                    <option value="Completed">Completed</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Pending">Pending</option>
+                </select>
+            </div>
+            <div class="form-group full-width">
+                <button type="submit">Submit</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
