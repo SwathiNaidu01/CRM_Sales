@@ -1,8 +1,6 @@
 flask
-sqlite3
-os
 pandas
-io
-datetime
 gunicorn
-itsdengerous
+itsdangerous
+python-dotenv  # for loading environment variables
+requests       # for making HTTP requests
