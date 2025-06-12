@@ -166,10 +166,10 @@ def new_dashboard():
     """Handles creation of new dashboard entries."""
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    
+
     if request.method == 'POST':
         data = request.form
-        
+
         try:
             budget = float(data.get('budget', 0))
         except ValueError:
@@ -177,6 +177,15 @@ def new_dashboard():
             flash('Invalid budget value', 'danger')
 
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # --- IMPORTANT CHANGE HERE ---
+        # Automatically set emp_name from session for non-admin users,
+        # or allow admin to set it manually.
+        if session.get('role') == 'user':
+            emp_name_for_entry = session['emp_name']
+        else: # Admin can specify or it comes from the form for admin
+            emp_name_for_entry = data['emp_name']
+        # --- END IMPORTANT CHANGE ---
 
         conn = None
         try:
@@ -190,11 +199,11 @@ def new_dashboard():
                     created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
-                data['emp_name'], data['role'], data['department'], 
-                data['client_name'], data['client_email'], 
+                emp_name_for_entry, data['role'], data['department'],
+                data['client_name'], data['client_email'],
                 data['report_date'], data.get('feedback', ''),
                 data.get('follow_up_date', ''), data.get('notes', ''),
-                budget, data['status'], data['project_name'], 
+                budget, data['status'], data['project_name'],
                 data['contact_number'], now, now
             ))
             conn.commit()
@@ -207,151 +216,104 @@ def new_dashboard():
         finally:
             if conn:
                 conn.close()
-    
-    return render_template('new_dashboard.html', 
-                           status_options=get_status_options(),
-                          # Pass emp_name for pre-filling
-                           session_role=session.get('role', '')) # Pass role for conditional rendering
+
+    # For GET request, pass emp_name from session to pre-fill the form
+    return render_template('new_dashboard.html',
+                            status_options=get_status_options(),
+                            session_emp_name=session.get('emp_name'), # Pass emp_name for pre-filling
+                            session_role=session.get('role', '')) # Pass role for conditional rendering
 
 @app.route('/dashboard_entries')
 def dashboard_entries():
-    """Displays and filters dashboard entries."""
+    """Displays all dashboard entries with filtering options."""
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     
-    filters = {
-        'emp_name': request.args.get('emp_name', '').strip(),
-        'client_name': request.args.get('client_name', '').strip(),
-        'project_name': request.args.get('project_name', '').strip(),
-        'status': request.args.get('status', '').strip(),
-        'min_budget': request.args.get('min_budget', '').strip(),
-        'max_budget': request.args.get('max_budget', '').strip(),
-        'date_from': request.args.get('date_from', '').strip(),
-        'date_to': request.args.get('date_to', '').strip(),
-        'search': request.args.get('search', '').strip()
-    }
-
+    # Get filter parameters from request
+    emp_name_filter = request.args.get('emp_name', '').strip()
+    client_name_filter = request.args.get('client_name', '').strip()
+    status_filter = request.args.get('status', '').strip()
+    
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-
+    
+    # Base query
     query = "SELECT * FROM dashboard WHERE 1=1"
     params = []
-
-    # For regular users, only show their own entries
+    
+    # Apply filters
+    if emp_name_filter:
+        query += " AND emp_name LIKE ?"
+        params.append(f"%{emp_name_filter}%")
+    
+    if client_name_filter:
+        query += " AND client_name LIKE ?"
+        params.append(f"%{client_name_filter}%")
+    
+    if status_filter:
+        query += " AND status = ?"
+        params.append(status_filter)
+    
+    # For regular users, only show their entries
     if session.get('role') == 'user':
         query += " AND emp_name = ?"
         params.append(session['emp_name'])
-
-    # Apply filters
-    if filters['emp_name']:
-        query += " AND emp_name LIKE ?"
-        params.append(f"%{filters['emp_name']}%")
-    if filters['client_name']:
-        query += " AND client_name LIKE ?"
-        params.append(f"%{filters['client_name']}%")
-    if filters['project_name']:
-        query += " AND project_name LIKE ?"
-        params.append(f"%{filters['project_name']}%")
-    if filters['status']:
-        query += " AND status = ?"
-        params.append(filters['status'])
-    if filters['min_budget']:
-        try:
-            query += " AND budget >= ?"
-            params.append(float(filters['min_budget']))
-        except ValueError:
-            pass
-    if filters['max_budget']:
-        try:
-            query += " AND budget <= ?"
-            params.append(float(filters['max_budget']))
-        except ValueError:
-            pass
-    if filters['date_from']:
-        query += " AND report_date >= ?"
-        params.append(filters['date_from'])
-    if filters['date_to']:
-        query += " AND report_date <= ?"
-        params.append(filters['date_to'])
-    if filters['search']:
-        search_term = f"%{filters['search']}%"
-        query += """
-            AND (emp_name LIKE ? OR 
-                 client_name LIKE ? OR 
-                 project_name LIKE ? OR 
-                 status LIKE ? OR 
-                 notes LIKE ? OR 
-                 feedback LIKE ?)
-        """
-        params.extend([search_term]*6)
-
-    # Get total count for pagination
-    count_query = query.replace("SELECT *", "SELECT COUNT(*)")
-    c.execute(count_query, params)
-    total_rows = c.fetchone()[0]
-
-    # Pagination
-    page = request.args.get('page', 1, type=int)
-    per_page = app.config['PER_PAGE']
-    offset = (page - 1) * per_page
-    total_pages = (total_rows + per_page - 1) // per_page
-
-    query += " ORDER BY report_date DESC LIMIT ? OFFSET ?"
-    params.extend([per_page, offset])
-
+    
+    query += " ORDER BY updated_at DESC"
+    
     c.execute(query, params)
     rows = c.fetchall()
     conn.close()
-
-    return render_template('dashboard_entries.html', 
-                           rows=rows, 
-                           filters=filters,
-                           status_options=get_status_options(),
-                           page=page,
-                           total_pages=total_pages,
-                           session=session) # Pass session to template for role-based access
+    
+    return render_template('dashboard_entries.html',
+                         rows=rows,
+                         status_options=get_status_options(),
+                         filters={
+                             'emp_name': emp_name_filter,
+                             'client_name': client_name_filter,
+                             'status': status_filter
+                         },
+                         is_admin=(session.get('role') == 'admin'))
 
 @app.route('/edit_entry/<int:id>', methods=['GET', 'POST'])
 def edit_entry(id):
-    """Allows editing of a specific dashboard entry."""
+    """Allows viewing/editing of a specific dashboard entry."""
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    
     c.execute('SELECT * FROM dashboard WHERE id = ?', (id,))
     entry = c.fetchone()
+    conn.close()
     
     if not entry:
         flash("Entry not found", "danger")
-        conn.close()
         return redirect(url_for('dashboard_entries'))
     
-    # For regular users, check if they own this entry
-    if session.get('role') == 'user' and entry['emp_name'] != session['emp_name']:
-        flash("You don't have permission to edit this entry", "danger")
-        conn.close()
+    # Check permissions
+    is_owner = (session.get('emp_name') == entry['emp_name'])
+    is_admin = (session.get('role') == 'admin')
+    
+    if not is_admin and not is_owner:
+        flash("You don't have permission to access this entry", "danger")
         return redirect(url_for('dashboard_entries'))
     
-    # Admin users view entries in read-only mode, regular users can edit
     if request.method == 'GET':
-        if session.get('role') == 'admin':
-            conn.close()
-            return render_template('view_entry.html', entry=entry)
-        else: # Regular user
-            conn.close()
-            return render_template('edit_entry.html', entry=entry)
+        # For GET requests, just show the entry
+        return render_template('view_entry.html', 
+                            entry=entry,
+                            can_edit=(is_owner or is_admin),
+                            is_admin=is_admin)
     
     elif request.method == 'POST':
-        if session.get('role') == 'admin':
-            flash("Admins can only view entries, not edit them directly from this page.", "warning")
-            conn.close()
+        # For POST requests, handle the update
+        if not (is_owner or is_admin):
+            flash("You don't have permission to edit this entry", "danger")
             return redirect(url_for('dashboard_entries'))
-
-        # Only regular users proceed with editing
+        
         data = request.form
         try:
             budget = float(data.get('budget', 0))
@@ -362,6 +324,8 @@ def edit_entry(id):
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         try:
+            conn = sqlite3.connect(DB_FILE)
+            c = conn.cursor()
             c.execute('''
                 UPDATE dashboard SET
                     emp_name = ?, role = ?, department = ?, client_name = ?, client_email = ?,
@@ -383,9 +347,14 @@ def edit_entry(id):
         except Exception as e:
             conn.rollback()
             flash(f'Error updating entry: {str(e)}', 'danger')
+            return redirect(url_for('edit_entry', id=id))
         finally:
-            conn.close()
+            if conn:
+                conn.close()
 
+
+
+    
 @app.route('/delete/<int:entry_id>', methods=['POST'])
 def delete_entry(entry_id):
     """Deletes a dashboard entry. Accessible only by admins."""
@@ -405,9 +374,6 @@ def delete_entry(entry_id):
     finally:
         conn.close()
     return redirect(url_for('dashboard_entries'))
-
-
-
     
 
 @app.route('/manages', methods=['GET', 'POST'])
@@ -522,7 +488,15 @@ def download_excel():
         query += " AND emp_name LIKE ?"
         params.append(f"%{filters['emp_name']}%")
 
-    # (Include rest of filters here... same as before)
+    # Add client_name_filter
+    if filters.get('client_name'):
+        query += " AND client_name LIKE ?"
+        params.append(f"%{filters['client_name']}%")
+
+    # Add status_filter
+    if filters.get('status'):
+        query += " AND status = ?"
+        params.append(filters['status'])
 
     df = pd.read_sql_query(query, conn, params=params)
     conn.close()
@@ -550,7 +524,7 @@ def download_excel():
         as_attachment=True,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-
+    
 @app.route('/add_employee', methods=['GET', 'POST'])
 def add_employee():
     """Handles adding new employees (admin only)"""
