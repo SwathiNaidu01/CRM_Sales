@@ -4,3 +4,4 @@ gunicorn
 itsdangerous
 python-dotenv  # for loading environment variables
 requests       # for making HTTP requests
+openpyxl
